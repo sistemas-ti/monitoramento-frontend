@@ -1,0 +1,35 @@
+.App {
+  font-family: "Roboto", Arial, sans-serif;
+  text-align: center;
+  margin: 20px auto;
+}
+
+.status-card {
+  background-color: #f9f9f9;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.status-card:hover {
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding: 0 10px;
+  }
+
+  .MuiTypography-h4 {
+    font-size: 1.5rem;
+  }
+}
+
+
+.status-card.online {
+  border-color: green;
+}
+
+.status-card.offline {
+  border-color: red;
+}
