@@ -55,7 +55,7 @@ function App() {
   const fetchMachineStatuses = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:3001/machine-status"); // Endpoint do backend
+      const response = await axios.get("http://localhost:3003/machine-status"); // Endpoint do backend
       setMachineStatuses(response.data); // Atualiza o estado com os dados recebidos
     } catch (error) {
       console.error("Erro ao buscar status das máquinas:", error);
