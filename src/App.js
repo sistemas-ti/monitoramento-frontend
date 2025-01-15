@@ -4,8 +4,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  TextField,
-  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -17,29 +15,10 @@ import {
   ListItemText,
   Divider,
   IconButton,
+  Button,
 } from "@mui/material";
-import {
-  Refresh,
-  Cloud,
-  Dashboard,
-  BarChart,
-  Settings,
-  Menu,
-  Add,
-  Delete,
-} from "@mui/icons-material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { Cloud, Menu, Refresh, Dashboard, Settings, BarChart } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import "./App.css";
 
 // Configuração do tema
 const theme = createTheme({
@@ -68,119 +47,28 @@ const theme = createTheme({
 const drawerWidth = 240;
 
 function App() {
-  // Estado para a lista de servidores
-  const [servers, setServers] = useState([]);
-  // Estados para os inputs do formulário de novo servidor
-  const [newServerName, setNewServerName] = useState("");
-  const [newServerEndpoint, setNewServerEndpoint] = useState("");
-  // Estados para armazenar os status e históricos de cada servidor (por nome)
-  const [statusData, setStatusData] = useState({});
-  const [historyData, setHistoryData] = useState({});
-  // Estado para controle de loading individual (utilizando o nome do servidor como chave)
-  const [loading, setLoading] = useState({});
-  // Controle de atualização automática (global)
-  const [autoUpdate, setAutoUpdate] = useState(true);
-  // Estado para menu mobile
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [machineStatuses, setMachineStatuses] = useState([]); // Estado para armazenar o status das máquinas
+  const [loading, setLoading] = useState(false); // Estado de loading para feedback visual
+  const [mobileOpen, setMobileOpen] = useState(false); // Estado para controle do menu mobile
 
-  // Adiciona novo servidor à lista
-  const addServer = () => {
-    if (!newServerName.trim() || !newServerEndpoint.trim()) {
-      alert("Preencha o nome e o endpoint do servidor.");
-      return;
-    }
-    // Evita duplicação (pelo nome)
-    if (servers.find((sv) => sv.name === newServerName.trim())) {
-      alert("Servidor com este nome já existe.");
-      return;
-    }
-    setServers((prev) => [
-      ...prev,
-      { name: newServerName.trim(), endpoint: newServerEndpoint.trim() },
-    ]);
-    setNewServerName("");
-    setNewServerEndpoint("");
-  };
-
-  // Remove um servidor da lista
-  const removeServer = (serverName) => {
-    setServers((prev) => prev.filter((s) => s.name !== serverName));
-    // Remove status e histórico, se houver
-    setStatusData((prev) => {
-      const copy = { ...prev };
-      delete copy[serverName];
-      return copy;
-    });
-    setHistoryData((prev) => {
-      const copy = { ...prev };
-      delete copy[serverName];
-      return copy;
-    });
-  };
-
-  // Busca o status de um servidor
-  const fetchServerStatus = async (server) => {
-    // Se não houver nome, aborta
-    if (!server.name) return;
-
-    // Atualiza estado de loading
-    setLoading((prev) => ({ ...prev, [server.name]: true }));
-
+  // Função para buscar os status das máquinas do backend
+  const fetchMachineStatuses = async () => {
+    setLoading(true);
     try {
-      const response = await axios.post(server.endpoint, {
-        server: server.name,
-      });
-      // Exemplo de resposta:
-      // {
-      //   "server": "MeuServidorLocal",
-      //   "cpuUsage": "53.27%",
-      //   "memoryUsage": "89.10%",
-      //   "status": "Online",
-      //   "timestamp": "2025-01-13T12:00:00.000Z"
-      // }
-      const { cpuUsage, memoryUsage, ...rest } = response.data;
-      const cpu = parseFloat(cpuUsage.replace("%", ""));
-      const memory = parseFloat(memoryUsage.replace("%", ""));
-
-      // Atualiza o status daquele servidor
-      setStatusData((prev) => ({
-        ...prev,
-        [server.name]: { ...rest, cpuUsage: cpu, memoryUsage: memory },
-      }));
-
-      // Atualiza o histórico (limite de 10 registros)
-      setHistoryData((prev) => {
-        const currentHistory = prev[server.name] || [];
-        return {
-          ...prev,
-          [server.name]: [
-            ...currentHistory.slice(-10),
-            {
-              timestamp: new Date().toLocaleTimeString(),
-              cpu,
-              memory,
-            },
-          ],
-        };
-      });
+      const response = await axios.get("http://localhost:3001/machine-status"); // Endpoint do backend
+      setMachineStatuses(response.data); // Atualiza o estado com os dados recebidos
     } catch (error) {
-      console.error(`Erro ao buscar status do servidor ${server.name}:`, error);
-      alert(`Erro ao buscar o status do servidor ${server.name}. Verifique a conexão.`);
+      console.error("Erro ao buscar status das máquinas:", error);
+      alert("Erro ao carregar status das máquinas.");
     } finally {
-      setLoading((prev) => ({ ...prev, [server.name]: false }));
+      setLoading(false);
     }
   };
 
-  // Atualiza status de todos os servidores se autoUpdate estiver ativado
+  // Carrega os status das máquinas ao montar o componente
   useEffect(() => {
-    if (autoUpdate && servers.length > 0) {
-      servers.forEach((server) => fetchServerStatus(server));
-      const interval = setInterval(() => {
-        servers.forEach((server) => fetchServerStatus(server));
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [servers, autoUpdate]);
+    fetchMachineStatuses();
+  }, []);
 
   // Alterna o menu mobile
   const handleDrawerToggle = () => {
@@ -232,7 +120,7 @@ function App() {
             </IconButton>
             <Cloud sx={{ mr: 1 }} />
             <Typography variant="h6" noWrap>
-              Monitoramento de Servidores
+              Monitoramento de Máquinas
             </Typography>
           </Toolbar>
         </AppBar>
@@ -290,131 +178,43 @@ function App() {
         >
           <Toolbar />
 
-          {/* Formulário para adicionar novo servidor */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6">Adicionar Novo Servidor</Typography>
-            <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
-              <TextField
-                label="Nome do Servidor"
-                variant="outlined"
-                value={newServerName}
-                onChange={(e) => setNewServerName(e.target.value)}
-                size="small"
-              />
-              <TextField
-                label="Endpoint"
-                variant="outlined"
-                value={newServerEndpoint}
-                onChange={(e) => setNewServerEndpoint(e.target.value)}
-                size="small"
-              />
-              <Button variant="contained" color="primary" onClick={addServer} startIcon={<Add />}>
-                Adicionar
-              </Button>
-            </Box>
-          </Box>
+          {/* Título */}
+          <Typography variant="h6" sx={{ mb: 3 }}>
+            Status das Máquinas
+          </Typography>
 
-          {/* Botão para ativar/desativar auto update global */}
+          {/* Botão para atualizar os dados */}
           <Box sx={{ mb: 3 }}>
             <Button
-              variant="outlined"
-              color={autoUpdate ? "secondary" : "primary"}
-              onClick={() => setAutoUpdate(!autoUpdate)}
+              variant="contained"
+              color="primary"
+              onClick={fetchMachineStatuses}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Refresh />}
+              disabled={loading}
             >
-              {autoUpdate ? "Pausar Atualização Automática" : "Reativar Atualização Automática"}
+              Atualizar Dados
             </Button>
           </Box>
 
-          {/* Listagem dos servidores cadastrados */}
-          {servers.length === 0 && (
-            <Typography color="text.secondary">Nenhum servidor cadastrado.</Typography>
-          )}
-          {servers.map((server) => (
-            <Card key={server.name} sx={{ mb: 4 }}>
-              <CardContent>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                  <Typography variant="h6">
-                    {server.name} -{" "}
-                    {statusData[server.name] ? statusData[server.name].status : "Sem dados"}
+          {/* Lista de status das máquinas */}
+          {machineStatuses.length === 0 ? (
+            <Typography color="text.secondary">Nenhum status disponível.</Typography>
+          ) : (
+            machineStatuses.map((status) => (
+              <Card key={status._id} sx={{ mb: 2 }}>
+                <CardContent>
+                  <Typography variant="h6">{status.machine}</Typography>
+                  <Typography>
+                    <strong>Status:</strong> {status.status}
                   </Typography>
-                  <IconButton color="secondary" onClick={() => removeServer(server.name)}>
-                    <Delete />
-                  </IconButton>
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
-                  {/* Botão para atualizar manualmente o servidor */}
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => fetchServerStatus(server)}
-                    startIcon={
-                      loading[server.name] ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        <Refresh />
-                      )
-                    }
-                    disabled={loading[server.name]}
-                  >
-                    Atualizar
-                  </Button>
-                  {statusData[server.name] && (
-                    <>
-                      <Typography variant="body1">
-                        <strong>CPU:</strong> {statusData[server.name].cpuUsage}%
-                      </Typography>
-                      <Typography variant="body1">
-                        <strong>Memória:</strong> {statusData[server.name].memoryUsage}%
-                      </Typography>
-                    </>
-                  )}
-                </Box>
-
-                {/* Gráfico do histórico */}
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                  Histórico
-                </Typography>
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: 250,
-                    background: "#fff",
-                    p: 2,
-                    borderRadius: 2,
-                    boxShadow: 1,
-                  }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={historyData[server.name] || []}
-                      margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="timestamp" />
-                      <YAxis tickFormatter={(value) => `${value}%`} />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="cpu"
-                        stroke="#8884d8"
-                        name="CPU (%)"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="memory"
-                        stroke="#82ca9d"
-                        name="Memória (%)"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
+                  <Typography>
+                    <strong>Última Atualização:</strong>{" "}
+                    {new Date(status.timestamp).toLocaleString()}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </Box>
       </Box>
     </ThemeProvider>
