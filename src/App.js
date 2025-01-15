@@ -18,7 +18,6 @@ import {
   ListItemText,
   Divider,
   IconButton,
-  Badge,
 } from "@mui/material";
 import {
   Refresh,
@@ -74,7 +73,6 @@ function App() {
   const [newServerEndpoint, setNewServerEndpoint] = useState("");
   const [loading, setLoading] = useState({});
   const [historyData, setHistoryData] = useState({});
-  const [status, setStatus] = useState({});
 
   const addServer = () => {
     if (!newServerName || !newServerEndpoint) {
@@ -113,20 +111,8 @@ function App() {
           },
         ],
       }));
-
-      // Definindo o status como "Online"
-      setStatus((prev) => ({
-        ...prev,
-        [server.name]: "Online",
-      }));
     } catch (error) {
       console.error(`Erro ao buscar status do servidor ${server.name}:`, error);
-      
-      // Definindo o status como "Offline" em caso de erro
-      setStatus((prev) => ({
-        ...prev,
-        [server.name]: "Offline",
-      }));
     } finally {
       setLoading((prev) => ({ ...prev, [server.name]: false }));
     }
@@ -184,7 +170,14 @@ function App() {
           </Drawer>
         </Box>
 
-        <Box component="main" sx={{ flexGrow: 1, p: 3, width: { md: `calc(100% - ${drawerWidth}px)` } }}>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            width: { md: `calc(100% - ${drawerWidth}px)` },
+          }}
+        >
           <Toolbar />
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6">Adicionar Servidor</Typography>
@@ -211,26 +204,15 @@ function App() {
             <Card key={server.name} sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6">{server.name}</Typography>
-                <Box sx={{ display: "flex", alignItems: "center" }}>
-                  <Badge
-                    color={status[server.name] === "Online" ? "success" : "error"}
-                    variant="dot"
-                    sx={{ mr: 2 }}
-                  />
-                  <Typography variant="body2" color={status[server.name] === "Online" ? "green" : "red"}>
-                    {status[server.name]}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => fetchServerStatus(server)}
-                    disabled={loading[server.name]}
-                    startIcon={loading[server.name] ? <CircularProgress size={20} /> : <Refresh />}
-                    sx={{ ml: "auto" }}
-                  >
-                    Atualizar
-                  </Button>
-                </Box>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => fetchServerStatus(server)}
+                  disabled={loading[server.name]}
+                  startIcon={loading[server.name] ? <CircularProgress size={20} /> : <Refresh />}
+                >
+                  Atualizar
+                </Button>
                 <Box sx={{ mt: 2 }}>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={historyData[server.name] || []}>
