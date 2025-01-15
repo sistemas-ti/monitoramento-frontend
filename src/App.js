@@ -16,30 +16,59 @@ import {
   Divider,
   IconButton,
   Button,
+  Container,
+  Grid,
 } from "@mui/material";
-import { Cloud, Menu, Refresh, Dashboard, Settings, BarChart } from "@mui/icons-material";
+import {
+  Cloud,
+  Menu,
+  Refresh,
+  Dashboard,
+  Settings,
+  BarChart,
+} from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-// Configuração do tema
+// Configuração atualizada do tema
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#3f51b5",
+      main: "#1976d2", // tom de azul moderno
     },
     secondary: {
-      main: "#f50057",
+      main: "#dc004e",
     },
     background: {
-      default: "#f4f6f8",
+      default: "#f7f9fc",
+      paper: "#fff",
     },
   },
   typography: {
-    fontFamily: "Roboto, Arial, sans-serif",
+    fontFamily: "Roboto, 'Helvetica Neue', Arial, sans-serif",
     h4: {
-      fontWeight: 600,
+      fontWeight: 700,
     },
     button: {
       textTransform: "none",
+      fontWeight: 600,
+    },
+  },
+  components: {
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: "none",
+          background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+        },
+      },
     },
   },
 });
@@ -47,16 +76,16 @@ const theme = createTheme({
 const drawerWidth = 240;
 
 function App() {
-  const [machineStatuses, setMachineStatuses] = useState([]); // Estado para armazenar o status das máquinas
-  const [loading, setLoading] = useState(false); // Estado de loading para feedback visual
-  const [mobileOpen, setMobileOpen] = useState(false); // Estado para controle do menu mobile
+  const [machineStatuses, setMachineStatuses] = useState([]); // Armazena o status das máquinas
+  const [loading, setLoading] = useState(false);               // Estado de loading
+  const [mobileOpen, setMobileOpen] = useState(false);           // Controle do menu mobile
 
   // Função para buscar os status das máquinas do backend
   const fetchMachineStatuses = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("https://monitoramento-servidor-1.onrender.com/machine-status"); // Endpoint do backend
-      setMachineStatuses(response.data); // Atualiza o estado com os dados recebidos
+      const response = await axios.get("https://monitoramento-servidor-1.onrender.com/machine-status");
+      setMachineStatuses(response.data);
     } catch (error) {
       console.error("Erro ao buscar status das máquinas:", error);
       alert("Erro ao carregar status das máquinas.");
@@ -65,7 +94,7 @@ function App() {
     }
   };
 
-  // Carrega os status das máquinas ao montar o componente
+  // Busca os status ao montar o componente
   useEffect(() => {
     fetchMachineStatuses();
   }, []);
@@ -75,7 +104,7 @@ function App() {
     setMobileOpen(!mobileOpen);
   };
 
-  // Sidebar com itens de navegação (opcional)
+  // Sidebar com itens de navegação
   const drawer = (
     <div>
       <Toolbar />
@@ -83,20 +112,20 @@ function App() {
       <List>
         <ListItem button>
           <ListItemIcon>
-            <Dashboard style={{ color: "#fff" }} />
+            <Dashboard sx={{ color: "#fff" }} />
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItem>
         <ListItem button>
           <ListItemIcon>
-            <BarChart style={{ color: "#fff" }} />
+            <BarChart sx={{ color: "#fff" }} />
           </ListItemIcon>
           <ListItemText primary="Relatórios" />
         </ListItem>
         <Divider />
         <ListItem button>
           <ListItemIcon>
-            <Settings style={{ color: "#fff" }} />
+            <Settings sx={{ color: "#fff" }} />
           </ListItemIcon>
           <ListItemText primary="Configurações" />
         </ListItem>
@@ -109,19 +138,34 @@ function App() {
       <Box sx={{ display: "flex" }}>
         {/* AppBar */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-          <Toolbar>
-            <IconButton
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { md: "none" } }}
+              >
+                <Menu />
+              </IconButton>
+              <Cloud sx={{ mr: 1 }} />
+              <Typography variant="h6" noWrap>
+                Monitoramento de Máquinas
+              </Typography>
+            </Box>
+            <Button
               color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { md: "none" } }}
+              onClick={fetchMachineStatuses}
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <Refresh />
+                )
+              }
             >
-              <Menu />
-            </IconButton>
-            <Cloud sx={{ mr: 1 }} />
-            <Typography variant="h6" noWrap>
-              Monitoramento de Máquinas
-            </Typography>
+              Atualizar
+            </Button>
           </Toolbar>
         </AppBar>
 
@@ -142,7 +186,7 @@ function App() {
               "& .MuiDrawer-paper": {
                 width: drawerWidth,
                 boxSizing: "border-box",
-                background: "linear-gradient(45deg, #3f51b5, #5c6bc0)",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
                 color: "#fff",
               },
             }}
@@ -157,7 +201,7 @@ function App() {
               "& .MuiDrawer-paper": {
                 width: drawerWidth,
                 boxSizing: "border-box",
-                background: "linear-gradient(45deg, #3f51b5, #5c6bc0)",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
                 color: "#fff",
               },
             }}
@@ -173,48 +217,42 @@ function App() {
           sx={{
             flexGrow: 1,
             p: 3,
-            width: { md: `calc(100% - ${drawerWidth}px)` },
+            mt: 8,
+            backgroundColor: theme.palette.background.default,
+            minHeight: "100vh",
           }}
         >
-          <Toolbar />
+          <Container maxWidth="lg">
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
+              Status das Máquinas
+            </Typography>
 
-          {/* Título */}
-          <Typography variant="h6" sx={{ mb: 3 }}>
-            Status das Máquinas
-          </Typography>
-
-          {/* Botão para atualizar os dados */}
-          <Box sx={{ mb: 3 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={fetchMachineStatuses}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Refresh />}
-              disabled={loading}
-            >
-              Atualizar Dados
-            </Button>
-          </Box>
-
-          {/* Lista de status das máquinas */}
-          {machineStatuses.length === 0 ? (
-            <Typography color="text.secondary">Nenhum status disponível.</Typography>
-          ) : (
-            machineStatuses.map((status) => (
-              <Card key={status._id} sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="h6">{status.machine}</Typography>
-                  <Typography>
-                    <strong>Status:</strong> {status.status}
-                  </Typography>
-                  <Typography>
-                    <strong>Última Atualização:</strong>{" "}
-                    {new Date(status.timestamp).toLocaleString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))
-          )}
+            {machineStatuses.length === 0 ? (
+              <Typography color="text.secondary">
+                Nenhum status disponível.
+              </Typography>
+            ) : (
+              <Grid container spacing={3}>
+                {machineStatuses.map((status) => (
+                  <Grid item xs={12} sm={6} md={4} key={status._id}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          {status.machine}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 1 }}>
+                          <strong>Status:</strong> {status.status}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Última Atualização: {new Date(status.timestamp).toLocaleString()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Container>
         </Box>
       </Box>
     </ThemeProvider>
