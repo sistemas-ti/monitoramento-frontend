@@ -3,7 +3,6 @@ import axios from "axios";
 import {
   AppBar,
   Toolbar,
-  Container,
   Typography,
   TextField,
   Button,
@@ -26,6 +25,8 @@ import {
   BarChart,
   Settings,
   Menu,
+  Add,
+  Delete,
 } from "@mui/icons-material";
 import {
   LineChart,
@@ -67,26 +68,68 @@ const theme = createTheme({
 const drawerWidth = 240;
 
 function App() {
-  const [serverName, setServerName] = useState("MeuServidorLocal");
-  const [statusData, setStatusData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
+  // Estado para a lista de servidores
+  const [servers, setServers] = useState([]);
+  // Estados para os inputs do formulário de novo servidor
+  const [newServerName, setNewServerName] = useState("");
+  const [newServerEndpoint, setNewServerEndpoint] = useState("");
+  // Estados para armazenar os status e históricos de cada servidor (por nome)
+  const [statusData, setStatusData] = useState({});
+  const [historyData, setHistoryData] = useState({});
+  // Estado para controle de loading individual (utilizando o nome do servidor como chave)
+  const [loading, setLoading] = useState({});
+  // Controle de atualização automática (global)
   const [autoUpdate, setAutoUpdate] = useState(true);
+  // Estado para menu mobile
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Função para buscar o status do servidor
-  const fetchServerStatus = async () => {
-    if (!serverName.trim()) {
-      alert("O nome do servidor não pode estar vazio.");
+  // Adiciona novo servidor à lista
+  const addServer = () => {
+    if (!newServerName.trim() || !newServerEndpoint.trim()) {
+      alert("Preencha o nome e o endpoint do servidor.");
       return;
     }
+    // Evita duplicação (pelo nome)
+    if (servers.find((sv) => sv.name === newServerName.trim())) {
+      alert("Servidor com este nome já existe.");
+      return;
+    }
+    setServers((prev) => [
+      ...prev,
+      { name: newServerName.trim(), endpoint: newServerEndpoint.trim() },
+    ]);
+    setNewServerName("");
+    setNewServerEndpoint("");
+  };
 
-    setLoading(true);
+  // Remove um servidor da lista
+  const removeServer = (serverName) => {
+    setServers((prev) => prev.filter((s) => s.name !== serverName));
+    // Remove status e histórico, se houver
+    setStatusData((prev) => {
+      const copy = { ...prev };
+      delete copy[serverName];
+      return copy;
+    });
+    setHistoryData((prev) => {
+      const copy = { ...prev };
+      delete copy[serverName];
+      return copy;
+    });
+  };
+
+  // Busca o status de um servidor
+  const fetchServerStatus = async (server) => {
+    // Se não houver nome, aborta
+    if (!server.name) return;
+
+    // Atualiza estado de loading
+    setLoading((prev) => ({ ...prev, [server.name]: true }));
+
     try {
-      const response = await axios.post("https://monitoramento-servidor-1.onrender.com/status", {
-        server: serverName,
+      const response = await axios.post(server.endpoint, {
+        server: server.name,
       });
-    
       // Exemplo de resposta:
       // {
       //   "server": "MeuServidorLocal",
@@ -98,40 +141,53 @@ function App() {
       const { cpuUsage, memoryUsage, ...rest } = response.data;
       const cpu = parseFloat(cpuUsage.replace("%", ""));
       const memory = parseFloat(memoryUsage.replace("%", ""));
-    
-      setStatusData({ ...rest, cpuUsage: cpu, memoryUsage: memory });
-      setHistoryData((prev) => [
-        ...prev.slice(-10),
-        {
-          timestamp: new Date().toLocaleTimeString(),
-          cpu: cpu || 0,
-          memory: memory || 0,
-        },
-      ]);
+
+      // Atualiza o status daquele servidor
+      setStatusData((prev) => ({
+        ...prev,
+        [server.name]: { ...rest, cpuUsage: cpu, memoryUsage: memory },
+      }));
+
+      // Atualiza o histórico (limite de 10 registros)
+      setHistoryData((prev) => {
+        const currentHistory = prev[server.name] || [];
+        return {
+          ...prev,
+          [server.name]: [
+            ...currentHistory.slice(-10),
+            {
+              timestamp: new Date().toLocaleTimeString(),
+              cpu,
+              memory,
+            },
+          ],
+        };
+      });
     } catch (error) {
-      console.error("Erro ao buscar o status do servidor:", error);
-      alert("Erro ao buscar o status do servidor. Verifique a conexão.");
+      console.error(`Erro ao buscar status do servidor ${server.name}:`, error);
+      alert(`Erro ao buscar o status do servidor ${server.name}. Verifique a conexão.`);
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, [server.name]: false }));
     }
-    
   };
 
-  // Atualização automática
+  // Atualiza status de todos os servidores se autoUpdate estiver ativado
   useEffect(() => {
-    if (autoUpdate) {
-      fetchServerStatus();
-      const interval = setInterval(fetchServerStatus, 5000);
+    if (autoUpdate && servers.length > 0) {
+      servers.forEach((server) => fetchServerStatus(server));
+      const interval = setInterval(() => {
+        servers.forEach((server) => fetchServerStatus(server));
+      }, 5000);
       return () => clearInterval(interval);
     }
-  }, [serverName, autoUpdate]);
+  }, [servers, autoUpdate]);
 
-  // Função para alternar o menu em telas pequenas
+  // Alterna o menu mobile
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  // Sidebar com itens de navegação
+  // Sidebar com itens de navegação (opcional)
   const drawer = (
     <div>
       <Toolbar />
@@ -166,7 +222,6 @@ function App() {
         {/* AppBar */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
           <Toolbar>
-            {/* Botão para abrir o menu em telas pequenas */}
             <IconButton
               color="inherit"
               edge="start"
@@ -176,8 +231,8 @@ function App() {
               <Menu />
             </IconButton>
             <Cloud sx={{ mr: 1 }} />
-            <Typography variant="h6" noWrap component="div">
-              Monitoramento do Servidor
+            <Typography variant="h6" noWrap>
+              Monitoramento de Servidores
             </Typography>
           </Toolbar>
         </AppBar>
@@ -186,7 +241,7 @@ function App() {
         <Box
           component="nav"
           sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-          aria-label="mailbox folders"
+          aria-label="menu"
         >
           {/* Menu para dispositivos móveis */}
           <Drawer
@@ -234,108 +289,132 @@ function App() {
           }}
         >
           <Toolbar />
-          {/* Campo para alterar o nome do servidor e botões */}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              gap: 2,
-              mb: 3,
-            }}
-          >
-            <TextField
-              label="Nome do Servidor"
-              variant="outlined"
-              value={serverName}
-              onChange={(e) => setServerName(e.target.value)}
-              size="small"
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={fetchServerStatus}
-              startIcon={<Refresh />}
-            >
-              Atualizar
-            </Button>
+
+          {/* Formulário para adicionar novo servidor */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6">Adicionar Novo Servidor</Typography>
+            <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
+              <TextField
+                label="Nome do Servidor"
+                variant="outlined"
+                value={newServerName}
+                onChange={(e) => setNewServerName(e.target.value)}
+                size="small"
+              />
+              <TextField
+                label="Endpoint"
+                variant="outlined"
+                value={newServerEndpoint}
+                onChange={(e) => setNewServerEndpoint(e.target.value)}
+                size="small"
+              />
+              <Button variant="contained" color="primary" onClick={addServer} startIcon={<Add />}>
+                Adicionar
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Botão para ativar/desativar auto update global */}
+          <Box sx={{ mb: 3 }}>
             <Button
               variant="outlined"
               color={autoUpdate ? "secondary" : "primary"}
               onClick={() => setAutoUpdate(!autoUpdate)}
             >
-              {autoUpdate ? "Pausar" : "Reativar"}
+              {autoUpdate ? "Pausar Atualização Automática" : "Reativar Atualização Automática"}
             </Button>
           </Box>
 
-          {loading ? (
-            <Box mt={4} display="flex" justifyContent="center">
-              <CircularProgress />
-            </Box>
-          ) : statusData ? (
-            <>
-              {/* Cartão com informações do servidor */}
-              <Card
-                variant="outlined"
-                className={`status-card ${
-                  statusData.status === "Online" ? "online" : "offline"
-                }`}
-                sx={{ mb: 4 }}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {statusData.server} - {statusData.status}
-                  </Typography>
-                  <Typography variant="body1">
-                    <strong>CPU:</strong> {statusData.cpuUsage}%
-                  </Typography>
-                  <Typography variant="body1">
-                    <strong>Memória:</strong> {statusData.memoryUsage}%
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Última atualização: {new Date().toLocaleTimeString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              {/* Gráfico de histórico */}
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Histórico
-              </Typography>
-              <Box sx={{ width: "100%", height: 300, background: "#fff", p: 2, borderRadius: 2, boxShadow: 1 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={historyData}
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timestamp" />
-                    <YAxis tickFormatter={(value) => `${value}%`} />
-                    <Tooltip formatter={(value) => `${value}%`} />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="cpu"
-                      stroke="#8884d8"
-                      name="CPU (%)"
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="memory"
-                      stroke="#82ca9d"
-                      name="Memória (%)"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </>
-          ) : (
-            <Typography mt={4} color="text.secondary">
-              Carregando...
-            </Typography>
+          {/* Listagem dos servidores cadastrados */}
+          {servers.length === 0 && (
+            <Typography color="text.secondary">Nenhum servidor cadastrado.</Typography>
           )}
+          {servers.map((server) => (
+            <Card key={server.name} sx={{ mb: 4 }}>
+              <CardContent>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="h6">
+                    {server.name} -{" "}
+                    {statusData[server.name] ? statusData[server.name].status : "Sem dados"}
+                  </Typography>
+                  <IconButton color="secondary" onClick={() => removeServer(server.name)}>
+                    <Delete />
+                  </IconButton>
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
+                  {/* Botão para atualizar manualmente o servidor */}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => fetchServerStatus(server)}
+                    startIcon={
+                      loading[server.name] ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        <Refresh />
+                      )
+                    }
+                    disabled={loading[server.name]}
+                  >
+                    Atualizar
+                  </Button>
+                  {statusData[server.name] && (
+                    <>
+                      <Typography variant="body1">
+                        <strong>CPU:</strong> {statusData[server.name].cpuUsage}%
+                      </Typography>
+                      <Typography variant="body1">
+                        <strong>Memória:</strong> {statusData[server.name].memoryUsage}%
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+
+                {/* Gráfico do histórico */}
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Histórico
+                </Typography>
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: 250,
+                    background: "#fff",
+                    p: 2,
+                    borderRadius: 2,
+                    boxShadow: 1,
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={historyData[server.name] || []}
+                      margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="timestamp" />
+                      <YAxis tickFormatter={(value) => `${value}%`} />
+                      <Tooltip formatter={(value) => `${value}%`} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="cpu"
+                        stroke="#8884d8"
+                        name="CPU (%)"
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="memory"
+                        stroke="#82ca9d"
+                        name="Memória (%)"
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
         </Box>
       </Box>
     </ThemeProvider>
