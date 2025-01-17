@@ -1,3 +1,4 @@
+// App.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -26,6 +27,7 @@ import {
   Dashboard,
   Settings,
   BarChart,
+  FiberManualRecord, // Ícone para status (círculo)
 } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
@@ -79,16 +81,22 @@ function App() {
   const [machineStatuses, setMachineStatuses] = useState([]); // Armazena o status das máquinas
   const [loading, setLoading] = useState(false);               // Estado de loading
   const [mobileOpen, setMobileOpen] = useState(false);           // Controle do menu mobile
+  const [serverOnline, setServerOnline] = useState(true);        // Indicador global de conexão com o servidor
 
   // Função para buscar os status das máquinas do backend
   const fetchMachineStatuses = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("https://monitoramento-servidor-1.onrender.com/machine-status");
+      const response = await axios.get(
+        "https://monitoramento-servidor-1.onrender.com/machine-status"
+      );
       setMachineStatuses(response.data);
+      setServerOnline(true);
     } catch (error) {
       console.error("Erro ao buscar status das máquinas:", error);
-      alert("Erro ao carregar status das máquinas.");
+      setServerOnline(false);
+      // Opcional: pode remover ou manter o alert
+      alert("Erro ao carregar status das máquinas. Verifique a conexão com o servidor.");
     } finally {
       setLoading(false);
     }
@@ -153,19 +161,34 @@ function App() {
                 Monitoramento de Máquinas
               </Typography>
             </Box>
-            <Button
-              color="inherit"
-              onClick={fetchMachineStatuses}
-              startIcon={
-                loading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <Refresh />
-                )
-              }
-            >
-              Atualizar
-            </Button>
+            {/* Indicador de conexão com o servidor + botão atualizar */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+                <FiberManualRecord
+                  sx={{
+                    color: serverOnline ? "green" : "red",
+                    fontSize: 12,
+                    mr: 0.5,
+                  }}
+                />
+                <Typography variant="body2">
+                  {serverOnline ? "Online" : "Offline"}
+                </Typography>
+              </Box>
+              <Button
+                color="inherit"
+                onClick={fetchMachineStatuses}
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <Refresh />
+                  )
+                }
+              >
+                Atualizar
+              </Button>
+            </Box>
           </Toolbar>
         </AppBar>
 
@@ -241,10 +264,23 @@ function App() {
                           {status.machine}
                         </Typography>
                         <Typography variant="body1" sx={{ mb: 1 }}>
-                          <strong>Status:</strong> {status.status}
+                          <strong>Status:</strong>{" "}
+                          <Box
+                            component="span"
+                            sx={{
+                              color:
+                                status.status.toLowerCase() === "online"
+                                  ? "green"
+                                  : "red",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {status.status}
+                          </Box>
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Última Atualização: {new Date(status.timestamp).toLocaleString()}
+                          Última Atualização:{" "}
+                          {new Date(status.timestamp).toLocaleString()}
                         </Typography>
                       </CardContent>
                     </Card>
