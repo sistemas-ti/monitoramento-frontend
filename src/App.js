@@ -1,4 +1,3 @@
-// App.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -19,6 +18,8 @@ import {
   Button,
   Container,
   Grid,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import {
   Cloud,
@@ -31,11 +32,13 @@ import {
 } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-// Configuração atualizada do tema
+const drawerWidth = 240;
+
+// Tema customizado
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#1976d2", // tom de azul moderno
+      main: "#1976d2", 
     },
     secondary: {
       main: "#dc004e",
@@ -68,22 +71,32 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+          transition: "transform 0.3s ease, box-shadow 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-5px)",
+            boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          },
         },
       },
     },
   },
 });
 
-const drawerWidth = 240;
-
 function App() {
-  const [machineStatuses, setMachineStatuses] = useState([]); // Armazena o status das máquinas
-  const [loading, setLoading] = useState(false);               // Estado de loading
-  const [mobileOpen, setMobileOpen] = useState(false);           // Controle do menu mobile
-  const [serverOnline, setServerOnline] = useState(true);        // Indicador global de conexão com o servidor
+  const [machineStatuses, setMachineStatuses] = useState([]); 
+  const [loading, setLoading] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [serverOnline, setServerOnline] = useState(true);
 
-  // Função para buscar os status das máquinas do backend
+  // Estado para exibir Snackbar quando servidor estiver offline
+  const [offlineAlertOpen, setOfflineAlertOpen] = useState(false);
+
+  // Fecha o Snackbar
+  const handleCloseOfflineAlert = () => {
+    setOfflineAlertOpen(false);
+  };
+
+  // Função para buscar status das máquinas
   const fetchMachineStatuses = async () => {
     setLoading(true);
     try {
@@ -95,14 +108,14 @@ function App() {
     } catch (error) {
       console.error("Erro ao buscar status das máquinas:", error);
       setServerOnline(false);
-      // Opcional: pode remover ou manter o alert
-      alert("Erro ao carregar status das máquinas. Verifique a conexão com o servidor.");
+      // Exibe snackbar
+      setOfflineAlertOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Busca os status ao montar o componente
+  // Busca status ao montar o componente
   useEffect(() => {
     fetchMachineStatuses();
   }, []);
@@ -112,7 +125,7 @@ function App() {
     setMobileOpen(!mobileOpen);
   };
 
-  // Sidebar com itens de navegação
+  // Sidebar
   const drawer = (
     <div>
       <Toolbar />
@@ -144,7 +157,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
-        {/* AppBar */}
+        {/* Barra superior (AppBar) */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
           <Toolbar sx={{ justifyContent: "space-between" }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -161,13 +174,14 @@ function App() {
                 Monitoramento de Máquinas
               </Typography>
             </Box>
-            {/* Indicador de conexão com o servidor + botão atualizar */}
+
+            {/* Indicador de conexão e botão Atualizar */}
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
                 <FiberManualRecord
                   sx={{
                     color: serverOnline ? "green" : "red",
-                    fontSize: 12,
+                    fontSize: 14,
                     mr: 0.5,
                   }}
                 />
@@ -192,13 +206,13 @@ function App() {
           </Toolbar>
         </AppBar>
 
-        {/* Sidebar Drawer */}
+        {/* Menu lateral (Drawer) */}
         <Box
           component="nav"
           sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-          aria-label="menu"
+          aria-label="menu lateral"
         >
-          {/* Menu para dispositivos móveis */}
+          {/* Drawer para dispositivos móveis */}
           <Drawer
             variant="temporary"
             open={mobileOpen}
@@ -216,7 +230,7 @@ function App() {
           >
             {drawer}
           </Drawer>
-          {/* Menu permanente para desktop */}
+          {/* Drawer permanente (desktop) */}
           <Drawer
             variant="permanent"
             sx={{
@@ -234,7 +248,7 @@ function App() {
           </Drawer>
         </Box>
 
-        {/* Conteúdo Principal */}
+        {/* Conteúdo principal */}
         <Box
           component="main"
           sx={{
@@ -258,7 +272,13 @@ function App() {
               <Grid container spacing={3}>
                 {machineStatuses.map((status) => (
                   <Grid item xs={12} sm={6} md={4} key={status._id}>
-                    <Card>
+                    <Card
+                      sx={{
+                        borderLeft: `5px solid ${
+                          status.status.toLowerCase() === "online" ? "green" : "red"
+                        }`,
+                      }}
+                    >
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
                           {status.machine}
@@ -291,6 +311,18 @@ function App() {
           </Container>
         </Box>
       </Box>
+
+      {/* Snackbar para notificar quando Offline */}
+      <Snackbar
+        open={offlineAlertOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseOfflineAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseOfflineAlert} severity="error">
+          Servidor está offline! Verifique sua conexão ou tente novamente.
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }
