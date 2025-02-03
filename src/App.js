@@ -20,10 +20,6 @@ import {
   Grid,
   Snackbar,
   Alert,
-  alpha,
-  useTheme,
-  styled,
-  keyframes
 } from "@mui/material";
 import {
   Cloud,
@@ -32,163 +28,303 @@ import {
   Dashboard,
   Settings,
   BarChart,
-  Lan,
-  Memory,
-  Storage,
+  FiberManualRecord, // Ícone para status (círculo)
 } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-const drawerWidth = 280;
-const pulse = keyframes`
-  0% { transform: scale(0.95); opacity: 0.8; }
-  70% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-`;
+const drawerWidth = 240;
 
-const ModernCard = styled(Card)(({ theme, status }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-  background: alpha(theme.palette.background.paper, 0.8),
-  backdropFilter: 'blur(12px)',
-  borderRadius: '16px',
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  position: 'relative',
-  overflow: 'visible',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: theme.shadows[8],
+// Tema customizado
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#1976d2", 
+    },
+    secondary: {
+      main: "#dc004e",
+    },
+    background: {
+      default: "#f7f9fc",
+      paper: "#fff",
+    },
   },
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: '16px',
-    padding: '2px',
-    background: status === 'online' 
-      ? `linear-gradient(45deg, ${theme.palette.success.main}, ${alpha(theme.palette.success.main, 0)})`
-      : `linear-gradient(45deg, ${theme.palette.error.main}, ${alpha(theme.palette.error.main, 0)})`,
-    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-    WebkitMaskComposite: 'xor',
-    maskComposite: 'exclude',
+  typography: {
+    fontFamily: "Roboto, 'Helvetica Neue', Arial, sans-serif",
+    h4: {
+      fontWeight: 700,
+    },
+    button: {
+      textTransform: "none",
+      fontWeight: 600,
+    },
   },
-}));
-
-// Mantemos o tema anterior...
+  components: {
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: "none",
+          background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          transition: "transform 0.3s ease, box-shadow 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-5px)",
+            boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          },
+        },
+      },
+    },
+  },
+});
 
 function App() {
-  // Estados anteriores mantidos...
+  const [machineStatuses, setMachineStatuses] = useState([]); 
+  const [loading, setLoading] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [serverOnline, setServerOnline] = useState(true);
+
+  // Estado para exibir Snackbar quando servidor estiver offline
+  const [offlineAlertOpen, setOfflineAlertOpen] = useState(false);
+
+  // Fecha o Snackbar
+  const handleCloseOfflineAlert = () => {
+    setOfflineAlertOpen(false);
+  };
+
+  // Função para buscar status das máquinas
+  const fetchMachineStatuses = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        "https://monitoramento-servidor-1.onrender.com/machine-status"
+      );
+      setMachineStatuses(response.data);
+      setServerOnline(true);
+    } catch (error) {
+      console.error("Erro ao buscar status das máquinas:", error);
+      setServerOnline(false);
+      // Exibe snackbar
+      setOfflineAlertOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Busca status ao montar o componente
+  useEffect(() => {
+    fetchMachineStatuses();
+  }, []);
+
+  // Alterna o menu mobile
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  // Sidebar
+  const drawer = (
+    <div>
+      <Toolbar />
+      <Divider />
+      <List>
+        <ListItem button>
+          <ListItemIcon>
+            <Dashboard sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>
+        <ListItem button>
+          <ListItemIcon>
+            <BarChart sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          <ListItemText primary="Relatórios" />
+        </ListItem>
+        <Divider />
+        <ListItem button>
+          <ListItemIcon>
+            <Settings sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          <ListItemText primary="Configurações" />
+        </ListItem>
+      </List>
+    </div>
+  );
 
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
+        {/* Barra superior (AppBar) */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-          {/* Header mantido igual */}
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { md: "none" } }}
+              >
+                <Menu />
+              </IconButton>
+              <Cloud sx={{ mr: 1 }} />
+              <Typography variant="h6" noWrap>
+                Monitoramento de Máquinas
+              </Typography>
+            </Box>
+
+            {/* Indicador de conexão e botão Atualizar */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+                <FiberManualRecord
+                  sx={{
+                    color: serverOnline ? "green" : "red",
+                    fontSize: 14,
+                    mr: 0.5,
+                  }}
+                />
+                <Typography variant="body2">
+                  {serverOnline ? "Online" : "Offline"}
+                </Typography>
+              </Box>
+              <Button
+                color="inherit"
+                onClick={fetchMachineStatuses}
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <Refresh />
+                  )
+                }
+              >
+                Atualizar
+              </Button>
+            </Box>
+          </Toolbar>
         </AppBar>
 
-        <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-          {/* Drawer mantido igual */}
+        {/* Menu lateral (Drawer) */}
+        <Box
+          component="nav"
+          sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+          aria-label="menu lateral"
+        >
+          {/* Drawer para dispositivos móveis */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: "block", md: "none" },
+              "& .MuiDrawer-paper": {
+                width: drawerWidth,
+                boxSizing: "border-box",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+                color: "#fff",
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+          {/* Drawer permanente (desktop) */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", md: "block" },
+              "& .MuiDrawer-paper": {
+                width: drawerWidth,
+                boxSizing: "border-box",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+                color: "#fff",
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
         </Box>
 
+        {/* Conteúdo principal */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             p: 3,
             mt: 8,
-            background: theme.palette.background.default,
-            minHeight: '100vh',
+            backgroundColor: theme.palette.background.default,
+            minHeight: "100vh",
           }}
         >
-          <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Grid
-              container
-              spacing={3}
-              sx={{
-                alignItems: 'stretch',
-                '& > .MuiGrid-item': {
-                  display: 'flex',
-                  flexDirection: 'column'
-                }
-              }}
-            >
-              {machineStatuses.map((status) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={status._id}>
-                  <ModernCard status={status.status.toLowerCase()}>
-                    <CardContent sx={{ 
-                      p: 3,
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        mb: 2,
-                        minHeight: 64
-                      }}>
-                        <Lan sx={{ 
-                          fontSize: 40, 
-                          mr: 2,
-                          flexShrink: 0,
-                          color: status.status.toLowerCase() === 'online' 
-                            ? 'success.main' 
-                            : 'error.main' 
-                        }} />
-                        <Box sx={{ overflow: 'hidden' }}>
-                          <Typography 
-                            variant="h6" 
-                            fontWeight={600}
-                            noWrap
+          <Container maxWidth="lg">
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
+              Status das Máquinas
+            </Typography>
+
+            {machineStatuses.length === 0 ? (
+              <Typography color="text.secondary">
+                Nenhum status disponível.
+              </Typography>
+            ) : (
+              <Grid container spacing={3}>
+                {machineStatuses.map((status) => (
+                  <Grid item xs={12} sm={6} md={4} key={status._id}>
+                    <Card
+                      sx={{
+                        borderLeft: `5px solid ${
+                          status.status.toLowerCase() === "online" ? "green" : "red"
+                        }`,
+                      }}
+                    >
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          {status.machine}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 1 }}>
+                          <strong>Status:</strong>{" "}
+                          <Box
+                            component="span"
                             sx={{
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden'
+                              color:
+                                status.status.toLowerCase() === "online"
+                                  ? "green"
+                                  : "red",
+                              fontWeight: "bold",
                             }}
                           >
-                            {status.machine}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color={status.status.toLowerCase() === 'online' 
-                              ? 'success.main' 
-                              : 'error.main'}
-                            fontWeight={500}
-                          >
                             {status.status}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Typography 
-                        variant="caption" 
-                        component="div" 
-                        color="text.secondary"
-                        sx={{ 
-                          mt: 1,
-                          textAlign: 'right',
-                          opacity: 0.8
-                        }}
-                      >
-                        {new Date(status.timestamp).toLocaleString()}
-                      </Typography>
-                    </CardContent>
-                  </ModernCard>
-                </Grid>
-              ))}
-            </Grid>
+                          </Box>
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Última Atualização:{" "}
+                          {new Date(status.timestamp).toLocaleString()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </Container>
         </Box>
-
-        {/* Snackbar mantido igual */}
       </Box>
+
+      {/* Snackbar para notificar quando Offline */}
+      <Snackbar
+        open={offlineAlertOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseOfflineAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseOfflineAlert} severity="error">
+          Servidor está offline! Verifique sua conexão ou tente novamente.
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }
 
-export default App;
+export default App; 
