@@ -20,10 +20,6 @@ import {
   Grid,
   Snackbar,
   Alert,
-  alpha,
-  useTheme,
-  styled,
-  keyframes
 } from "@mui/material";
 import {
   Cloud,
@@ -33,84 +29,32 @@ import {
   Settings,
   BarChart,
   FiberManualRecord,
-  Lan,
-  Memory,
-  Storage,
 } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-const drawerWidth = 280;
-const pulse = keyframes`
-  0% { transform: scale(0.95); opacity: 0.8; }
-  70% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-`;
+const drawerWidth = 240;
 
-const ModernCard = styled(Card)(({ theme, status }) => ({
-  background: theme.palette.mode === 'dark' 
-    ? alpha(theme.palette.background.paper, 0.8)
-    : theme.palette.background.paper,
-  backdropFilter: 'blur(12px)',
-  borderRadius: '16px',
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  position: 'relative',
-  overflow: 'visible',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: theme.shadows[8],
-  },
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: '16px',
-    padding: '2px',
-    background: status === 'online' 
-      ? `linear-gradient(45deg, ${theme.palette.success.main}, ${alpha(theme.palette.success.main, 0)})`
-      : `linear-gradient(45deg, ${theme.palette.error.main}, ${alpha(theme.palette.error.main, 0)})`,
-    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-    WebkitMaskComposite: 'xor',
-    maskComposite: 'exclude',
-  },
-}));
-
+// Tema customizado
 const theme = createTheme({
   palette: {
-    mode: 'dark',
     primary: {
-      main: '#7c4dff',
+      main: "#1976d2",
     },
     secondary: {
-      main: '#00e5ff',
+      main: "#dc004e",
     },
     background: {
-      default: '#0a1929',
-      paper: '#001e3c',
-    },
-    success: {
-      main: '#00ff88',
-    },
-    error: {
-      main: '#ff1744',
+      default: "#f7f9fc",
+      paper: "#fff",
     },
   },
   typography: {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "Roboto, 'Helvetica Neue', Arial, sans-serif",
     h4: {
-      fontWeight: 800,
-      letterSpacing: '-0.03em',
-    },
-    h5: {
       fontWeight: 700,
-      letterSpacing: '-0.02em',
     },
     button: {
-      textTransform: 'none',
+      textTransform: "none",
       fontWeight: 600,
     },
   },
@@ -118,18 +62,20 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(16, 24, 39, 0.8)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${alpha('#7c4dff', 0.2)}`,
+          boxShadow: "none",
+          background: "linear-gradient(45deg, #1976d2, #42a5f5)",
         },
       },
     },
-    MuiDrawer: {
+    MuiCard: {
       styleOverrides: {
-        paper: {
-          background: 'rgba(16, 24, 39, 0.9)',
-          backdropFilter: 'blur(12px)',
-          borderRight: `1px solid ${alpha('#7c4dff', 0.1)}`,
+        root: {
+          borderRadius: 12,
+          transition: "transform 0.3s ease, boxShadow 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-5px)",
+            boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          },
         },
       },
     },
@@ -142,8 +88,13 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [serverOnline, setServerOnline] = useState(true);
   const [offlineAlertOpen, setOfflineAlertOpen] = useState(false);
-  const theme = useTheme();
 
+  // Fecha o Snackbar
+  const handleCloseOfflineAlert = () => {
+    setOfflineAlertOpen(false);
+  };
+
+  // Função para buscar status das máquinas
   const fetchMachineStatuses = async () => {
     setLoading(true);
     try {
@@ -161,52 +112,51 @@ function App() {
     }
   };
 
+  // Busca status ao montar o componente
   useEffect(() => {
     fetchMachineStatuses();
   }, []);
 
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-  const handleCloseOfflineAlert = () => setOfflineAlertOpen(false);
+  // Alterna o menu mobile
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
+  // Sidebar
   const drawer = (
     <div>
-      <Toolbar sx={{ px: 2, pt: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Cloud sx={{ fontSize: 32, color: theme.palette.primary.main }} />
-          <Typography variant="h6" color="text.primary">
-            Cloud Monitor
-          </Typography>
-        </Box>
-      </Toolbar>
-      <Divider sx={{ borderColor: alpha(theme.palette.divider, 0.1), my: 2 }} />
-      <List>
-        {[
-          { text: 'Dashboard', icon: <Dashboard /> },
-          { text: 'Analytics', icon: <BarChart /> },
-          { text: 'Infraestrutura', icon: <Memory /> },
-          { text: 'Armazenamento', icon: <Storage /> },
-          { text: 'Configurações', icon: <Settings /> },
-        ].map((item) => (
-          <ListItem 
-            button 
-            key={item.text}
-            sx={{
-              borderRadius: 2,
-              mx: 2,
-              '&:hover': {
-                background: alpha(theme.palette.primary.main, 0.1),
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.text} 
-              primaryTypographyProps={{ fontWeight: 500 }}
-            />
-          </ListItem>
-        ))}
+      <Toolbar />
+      <Divider />
+      <List sx={{ px: 1 }}>
+        <ListItem button>
+          <ListItemIcon>
+            <Dashboard sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          {/* Forçar a cor do texto em branco */}
+          <ListItemText
+            primary="Dashboard"
+            primaryTypographyProps={{ sx: { color: "#fff" } }}
+          />
+        </ListItem>
+        <ListItem button>
+          <ListItemIcon>
+            <BarChart sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Relatórios"
+            primaryTypographyProps={{ sx: { color: "#fff" } }}
+          />
+        </ListItem>
+        <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
+        <ListItem button>
+          <ListItemIcon>
+            <Settings sx={{ color: "#fff" }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Configurações"
+            primaryTypographyProps={{ sx: { color: "#fff" } }}
+          />
+        </ListItem>
       </List>
     </div>
   );
@@ -214,59 +164,63 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
+        {/* Barra superior (AppBar) */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-          <Toolbar sx={{ justifyContent: "space-between", px: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            {/* Logo e Título */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <IconButton
                 color="inherit"
                 edge="start"
                 onClick={handleDrawerToggle}
-                sx={{ display: { md: "none" } }}
+                sx={{ mr: 2, display: { md: "none" } }}
               >
                 <Menu />
               </IconButton>
+              <Cloud sx={{ mr: 1 }} />
               <Typography variant="h6" noWrap>
-                Machine Monitoring
+                Monitoramento de Máquinas
               </Typography>
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
+            {/* Indicador de conexão e botão Atualizar */}
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mr: 3 }}>
+                <FiberManualRecord
                   sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    bgcolor: serverOnline ? 'success.main' : 'error.main',
-                    animation: serverOnline ? `${pulse} 1.5s infinite` : 'none',
+                    color: serverOnline ? "green" : "red",
+                    fontSize: 14,
+                    mr: 0.5,
                   }}
                 />
                 <Typography variant="body2">
-                  {serverOnline ? 'Connected' : 'Offline'}
+                  {serverOnline ? "Online" : "Offline"}
                 </Typography>
               </Box>
               <Button
-                variant="outlined"
+                color="inherit"
                 onClick={fetchMachineStatuses}
-                startIcon={<Refresh />}
-                sx={{
-                  borderColor: alpha(theme.palette.primary.main, 0.3),
-                  '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    background: alpha(theme.palette.primary.main, 0.1),
-                  },
-                }}
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <Refresh />
+                  )
+                }
               >
-                Refresh
+                Atualizar
               </Button>
             </Box>
           </Toolbar>
         </AppBar>
 
+        {/* Menu lateral (Drawer) */}
         <Box
           component="nav"
           sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+          aria-label="menu lateral"
         >
+          {/* Drawer para dispositivos móveis */}
           <Drawer
             variant="temporary"
             open={mobileOpen}
@@ -274,15 +228,26 @@ function App() {
             ModalProps={{ keepMounted: true }}
             sx={{
               display: { xs: "block", md: "none" },
+              "& .MuiDrawer-paper": {
+                width: drawerWidth,
+                boxSizing: "border-box",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+              },
             }}
           >
             {drawer}
           </Drawer>
+
+          {/* Drawer permanente (desktop) */}
           <Drawer
             variant="permanent"
             sx={{
               display: { xs: "none", md: "block" },
-              '& .MuiDrawer-paper': { width: drawerWidth },
+              "& .MuiDrawer-paper": {
+                width: drawerWidth,
+                boxSizing: "border-box",
+                background: "linear-gradient(45deg, #1976d2, #42a5f5)",
+              },
             }}
             open
           >
@@ -290,80 +255,85 @@ function App() {
           </Drawer>
         </Box>
 
+        {/* Conteúdo principal */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
-            mt: 8,
-            background: theme.palette.background.default,
-            minHeight: '100vh',
+            backgroundColor: theme.palette.background.default,
+            minHeight: "100vh",
           }}
         >
-          <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Grid container spacing={3}>
-              {machineStatuses.map((status) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={status._id}>
-                  <ModernCard status={status.status.toLowerCase()}>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Lan sx={{ 
-                          fontSize: 40, 
-                          mr: 2,
-                          color: status.status.toLowerCase() === 'online' 
-                            ? 'success.main' 
-                            : 'error.main' 
-                        }} />
-                        <Box>
-                          <Typography variant="h6" fontWeight={600}>
-                            {status.machine}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color={status.status.toLowerCase() === 'online' 
-                              ? 'success.main' 
-                              : 'error.main'}
-                            fontWeight={500}
+          {/* Para espaçar abaixo do AppBar */}
+          <Toolbar />
+
+          {/* Container principal do conteúdo */}
+          <Container maxWidth="lg" sx={{ py: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
+              Status das Máquinas
+            </Typography>
+
+            {machineStatuses.length === 0 ? (
+              <Typography color="text.secondary">
+                Nenhum status disponível.
+              </Typography>
+            ) : (
+              <Grid container spacing={3}>
+                {machineStatuses.map((status) => (
+                  <Grid item xs={12} sm={6} md={4} key={status._id}>
+                    <Card
+                      sx={{
+                        borderLeft: `5px solid ${
+                          status.status.toLowerCase() === "online"
+                            ? "green"
+                            : "red"
+                        }`,
+                      }}
+                    >
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          {status.machine}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 1 }}>
+                          <strong>Status:</strong>{" "}
+                          <Box
+                            component="span"
+                            sx={{
+                              color:
+                                status.status.toLowerCase() === "online"
+                                  ? "green"
+                                  : "red",
+                              fontWeight: "bold",
+                            }}
                           >
                             {status.status}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Typography 
-                        variant="caption" 
-                        component="div" 
-                        color="text.secondary"
-                        sx={{ mt: 1 }}
-                      >
-                        Last update: {new Date(status.timestamp).toLocaleString()}
-                      </Typography>
-                    </CardContent>
-                  </ModernCard>
-                </Grid>
-              ))}
-            </Grid>
+                          </Box>
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Última Atualização:{" "}
+                          {new Date(status.timestamp).toLocaleString()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </Container>
         </Box>
-
-        <Snackbar
-          open={offlineAlertOpen}
-          autoHideDuration={6000}
-          onClose={handleCloseOfflineAlert}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert 
-            severity="error"
-            sx={{
-              background: theme.palette.error.dark,
-              color: theme.palette.common.white,
-              borderRadius: 3,
-              boxShadow: theme.shadows[6],
-            }}
-          >
-            Connection lost! Unable to reach the server.
-          </Alert>
-        </Snackbar>
       </Box>
+
+      {/* Snackbar para notificar quando Offline */}
+      <Snackbar
+        open={offlineAlertOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseOfflineAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseOfflineAlert} severity="error">
+          Servidor está offline! Verifique sua conexão ou tente novamente.
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }
